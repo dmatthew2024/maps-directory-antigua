@@ -26,11 +26,13 @@ const MapsDirectory = () => {
     return paths[category];
   };
 
+  // Change this part in your useEffect:
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await window.fs.readFile(getCsvPath(selectedCategory));
-        const csvText = new TextDecoder().decode(response);
+        // Replace window.fs.readFile with fetch
+        const response = await fetch(getCsvPath(selectedCategory));
+        const csvText = await response.text();
         
         Papa.parse(csvText, {
           header: true,
