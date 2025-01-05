@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Search } from 'lucide-react';
 
 const MapsDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Restaurants');
   const [showAll, setShowAll] = useState(false);
   const [data, setData] = useState([]);
-  
+
   const categories = [
     'Restaurants',
     'Gas Stations',
@@ -18,9 +17,9 @@ const MapsDirectory = () => {
 
   const getCsvPath = (category) => {
     const paths = {
-      'Restaurants': 'data/restaurant_google_maps_data.csv',
-      'Gas Stations': 'data/gas_station_google_maps_data.csv',
-      'Government': 'data/government_google_maps_data.csv',
+      'Restaurants': 'data/R8_google_maps_data.csv',
+      'Gas Stations': 'data/gas_stations_google_maps_data.csv',
+      'Government': 'data/government_departments_google_maps_data.csv',
       'Hardware Stores': 'data/hardware_store_google_maps_data.csv',
       'Medical Clinics': 'data/medical_clinic_google_maps_data.csv'
     };
@@ -54,8 +53,8 @@ const MapsDirectory = () => {
   }, [selectedCategory]);
 
   const filteredData = data.filter(item => {
-    if (!showAll && !searchTerm) return [];
-    if (!searchTerm) return data;
+    if (!showAll && !searchTerm) return false;
+    if (!searchTerm && showAll) return true;
     
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -75,11 +74,10 @@ const MapsDirectory = () => {
         <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
           <div className="flex items-center gap-4 mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search by name or location..."
-                className="w-full bg-gray-700 text-gray-100 pl-10 pr-4 py-2 rounded-md border border-gray-600 focus:outline-none focus:border-gray-500"
+                className="w-full bg-gray-700 text-gray-100 px-4 py-2 rounded-md border border-gray-600 focus:outline-none focus:border-gray-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
