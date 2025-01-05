@@ -6,8 +6,7 @@ const MapsDirectory = () => {
   const [selectedCategory, setSelectedCategory] = useState('Restaurants');
   const [showAll, setShowAll] = useState(false);
   const [data, setData] = useState([]);
-  const [error, setError] = useState(null);
-
+  
   const categories = [
     'Restaurants',
     'Gas Stations',
@@ -17,46 +16,35 @@ const MapsDirectory = () => {
   ];
 
   const getCsvPath = (category) => {
-    // Add the base path for GitHub Pages
-    const basePath = '/maps-directory-antigua';
     const paths = {
-      'Restaurants': '/data/R8_google_maps_data.csv',
-      'Gas Stations': '/data/gas_stations_google_maps_data.csv',
-      'Government': '/data/government_departments_google_maps_data.csv',
-      'Hardware Stores': '/data/hardware_store_google_maps_data.csv',
-      'Medical Clinics': '/data/medical_clinic_google_maps_data.csv'
+      'Restaurants': 'data/R8_google_maps_data.csv',
+      'Gas Stations': 'data/gas_stations_google_maps_data.csv',
+      'Government': 'data/government_departments_google_maps_data.csv',
+      'Hardware Stores': 'data/hardware_store_google_maps_data.csv',
+      'Medical Clinics': 'data/medical_clinic_google_maps_data.csv'
     };
-    return `${basePath}${paths[category]}`;
+    return paths[category];
   };
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetch(getCsvPath(selectedCategory));
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const csvText = await response.text();
+        const response = await window.fs.readFile(getCsvPath(selectedCategory));
+        const csvText = new TextDecoder().decode(response);
         
         Papa.parse(csvText, {
           header: true,
           dynamicTyping: true,
           skipEmptyLines: true,
           complete: (results) => {
-            if (results.errors.length) {
-              console.warn('CSV parsing warnings:', results.errors);
-            }
             setData(results.data);
-            setError(null);
           },
           error: (error) => {
             console.error('Error parsing CSV:', error);
-            setError('Error parsing data');
           }
         });
       } catch (error) {
         console.error('Error loading data:', error);
-        setError('Error loading data');
         setData([]);
       }
     };
@@ -70,8 +58,8 @@ const MapsDirectory = () => {
     
     const searchLower = searchTerm.toLowerCase();
     return (
-      (item.Name?.toLowerCase().includes(searchLower)) ||
-      (item.Address?.toLowerCase().includes(searchLower))
+      item.Name?.toLowerCase().includes(searchLower) ||
+      item.Address?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -102,11 +90,11 @@ const MapsDirectory = () => {
             </button>
           </div>
 
-          <div className="flex gap-4 mb-6 border-b border-gray-700 overflow-x-auto">
+          <div className="flex gap-4 mb-6 border-b border-gray-700">
             {categories.map(category => (
               <button
                 key={category}
-                className={`pb-2 px-1 whitespace-nowrap ${
+                className={`pb-2 px-1 ${
                   selectedCategory === category
                     ? 'text-white border-b-2 border-white'
                     : 'text-gray-400 hover:text-gray-300'
@@ -118,13 +106,9 @@ const MapsDirectory = () => {
             ))}
           </div>
 
-          {error ? (
-            <p className="text-red-400 mb-4">{error}</p>
-          ) : (
-            <p className="text-gray-400 mb-4">
-              Showing {filteredData.length} results
-            </p>
-          )}
+          <p className="text-gray-400 mb-4">
+            Showing {filteredData.length} results
+          </p>
 
           <div className="overflow-x-auto">
             <table className="w-full">
