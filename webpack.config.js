@@ -8,6 +8,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
+    publicPath: './'  // Changed from '/maps-directory-antigua/'
   },
   resolve: {
     extensions: ['.js', '.jsx']
@@ -29,7 +30,11 @@ module.exports = {
     }),
     new CopyPlugin({
       patterns: [
-        { from: "public/data", to: "data" }
+        { 
+          from: "public/data",
+          to: "data",
+          noErrorOnMissing: true
+        }
       ],
     }),
   ],
@@ -39,6 +44,7 @@ module.exports = {
     },
     port: 3000,
     open: true,
-    hot: true
+    hot: true,
+    historyApiFallback: true
   }
 };
