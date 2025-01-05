@@ -1,338 +1,158 @@
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { 
-  Container, 
-  TextField,
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableRow, 
-  Tabs, 
-  Tab, 
-  Paper, 
-  Box,
-  IconButton,
-  InputAdornment,
-  CircularProgress,
-  Typography,
-  Button,
-  CssBaseline
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import ViewListIcon from '@mui/icons-material/ViewList';
-import PlaceIcon from '@mui/icons-material/Place';
+import { Search } from 'lucide-react';
 
-const App = () => {
-  // State management
-  const [data, setData] = useState({
-    restaurants: [],
-    gas_stations: [],
-    government: []
-  });
-  const [activeCategory, setActiveCategory] = useState('restaurants');
+const MapsDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('Restaurants');
   const [showAll, setShowAll] = useState(false);
-  const [debug, setDebug] = useState('');
+  const [data, setData] = useState([]);
+  
+  const categories = [
+    'Restaurants',
+    'Gas Stations',
+    'Government',
+    'Hardware Stores',
+    'Medical Clinics'
+  ];
 
-  // Load data on component mount
-  useEffect(() => {
-    loadCsvFiles();
-  }, []);
-
-  // Data loading function
-  const loadCsvFiles = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    const files = {
-      restaurants: '/data/R8_google_maps_data.csv',
-      gas_stations: '/data/gas_stations_google_maps_data.csv',
-      government: '/data/government_departments_google_maps_data.csv'
+  const getCsvPath = (category) => {
+    const paths = {
+      'Restaurants': 'data/restaurant_google_maps_data.csv',
+      'Gas Stations': 'data/gas_station_google_maps_data.csv',
+      'Government': 'data/government_google_maps_data.csv',
+      'Hardware Stores': 'data/hardware_store_google_maps_data.csv',
+      'Medical Clinics': 'data/medical_clinic_google_maps_data.csv'
     };
+    return paths[category];
+  };
 
-    try {
-      const loadedData = {};
-      
-      for (const [category, filePath] of Object.entries(files)) {
-        setDebug(prev => prev + `\nFetching ${category} data from ${filePath}`);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const response = await window.fs.readFile(getCsvPath(selectedCategory));
+        const csvText = new TextDecoder().decode(response);
         
-        const response = await fetch(filePath);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const text = await response.text();
-        setDebug(prev => prev + `\nLoaded ${category} data, length: ${text.length}`);
-        
-        Papa.parse(text, {
+        Papa.parse(csvText, {
           header: true,
+          dynamicTyping: true,
           skipEmptyLines: true,
           complete: (results) => {
-            setDebug(prev => prev + `\nParsed ${results.data.length} rows for ${category}`);
-            loadedData[category] = results.data;
+            setData(results.data);
           },
           error: (error) => {
-            throw new Error(`Parse error for ${category}: ${error.message}`);
+            console.error('Error parsing CSV:', error);
           }
         });
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setData([]);
       }
-      
-      setData(loadedData);
-    } catch (error) {
-      setDebug(prev => prev + `\nError: ${error.message}`);
-      setError(`Error loading data: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  // Filter data based on search term
-  const getFilteredData = () => {
-    const currentData = data[activeCategory] || [];
+    loadData();
+  }, [selectedCategory]);
+
+  const filteredData = data.filter(item => {
+    if (!showAll && !searchTerm) return [];
+    if (!searchTerm) return data;
     
-    // Return empty array if neither searching nor showing all
-    if (!searchTerm.trim() && !showAll) {
-      return [];
-    }
-
-    // Return all data if show all is clicked and no search term
-    if (showAll && !searchTerm.trim()) {
-      return currentData;
-    }
-
-    // Filter by search term
     const searchLower = searchTerm.toLowerCase();
-    return currentData.filter(item => 
-      (item.Name?.toLowerCase().includes(searchLower) ||
-       item.Address?.toLowerCase().includes(searchLower))
+    return (
+      item.Name?.toLowerCase().includes(searchLower) ||
+      item.Address?.toLowerCase().includes(searchLower)
     );
-  };
-
-  // Event handlers
-  const handleShowAll = () => {
-    setShowAll(prev => !prev);
-    setSearchTerm('');
-  };
-
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setShowAll(false);
-  };
-
-  // Get filtered data
-  const filteredData = getFilteredData();
+  });
 
   return (
-    <>
-      <CssBaseline />
-      <Box 
-        sx={{ 
-          minHeight: '100vh',
-          background: 'linear-gradient(to bottom, #1a1a1a, #2d2d2d)',
-          pt: 4,
-          pb: 8
-        }}
-      >
-        <Container maxWidth="lg">
-          {/* Header Section */}
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              color: 'white',
-              mb: 4,
-              textAlign: 'center',
-              fontWeight: 300,
-              '& strong': { fontWeight: 600 }
-            }}
-          >
-            <strong>Maps</strong> Directory
-          </Typography>
+    <div className="min-h-screen bg-gray-900 text-gray-100 p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-12">
+          <span className="text-white">Maps</span>
+          <span className="text-gray-400"> Directory</span>
+        </h1>
 
-          {/* Main Content Paper */}
-          <Paper 
-            elevation={24}
-            sx={{ 
-              background: 'linear-gradient(145deg, #2a2a2a, #1f1f1f)',
-              borderRadius: 3,
-              overflow: 'hidden',
-              border: '1px solid rgba(255, 255, 255, 0.05)'
-            }}
-          >
-            {/* Search and Controls Section */}
-            <Box sx={{ p: 3, borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  placeholder="Search by name or location..."
-                  value={searchTerm}
-                  onChange={handleSearch}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.3)' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                      color: 'white',
-                      borderRadius: 2,
-                      '& fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.3)',
-                      },
-                    },
-                    '& .MuiInputBase-input::placeholder': {
-                      color: 'rgba(255, 255, 255, 0.3)',
-                      opacity: 1,
-                    },
-                  }}
-                />
-                <Button
-                  variant={showAll ? "contained" : "outlined"}
-                  onClick={handleShowAll}
-                  startIcon={<ViewListIcon />}
-                  sx={{
-                    minWidth: '120px',
-                    color: showAll ? '#1a1a1a' : 'rgba(255, 255, 255, 0.7)',
-                    backgroundColor: showAll ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    '&:hover': {
-                      backgroundColor: showAll ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.1)',
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                    },
-                  }}
-                >
-                  {showAll ? 'Hide All' : 'Show All'}
-                </Button>
-              </Box>
+        <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name or location..."
+                className="w-full bg-gray-700 text-gray-100 pl-10 pr-4 py-2 rounded-md border border-gray-600 focus:outline-none focus:border-gray-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <button
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-sm"
+              onClick={() => setShowAll(!showAll)}
+            >
+              SHOW ALL
+            </button>
+          </div>
 
-              {/* Category Tabs */}
-              <Tabs 
-                value={activeCategory} 
-                onChange={(e, newValue) => {
-                  setActiveCategory(newValue);
-                  setShowAll(false);
-                  setSearchTerm('');
-                }}
-                sx={{
-                  '& .MuiTab-root': {
-                    color: 'rgba(255, 255, 255, 0.4)',
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    minWidth: 120,
-                    '&.Mui-selected': {
-                      color: 'white',
-                    },
-                  },
-                  '& .MuiTabs-indicator': {
-                    backgroundColor: 'white',
-                    height: 3,
-                    borderRadius: '3px 3px 0 0',
-                  },
-                }}
+          <div className="flex gap-4 mb-6 border-b border-gray-700">
+            {categories.map(category => (
+              <button
+                key={category}
+                className={`pb-2 px-1 ${
+                  selectedCategory === category
+                    ? 'text-white border-b-2 border-white'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+                onClick={() => setSelectedCategory(category)}
               >
-                <Tab label="Restaurants" value="restaurants" />
-                <Tab label="Gas Stations" value="gas_stations" />
-                <Tab label="Government" value="government" />
-              </Tabs>
-            </Box>
+                {category}
+              </button>
+            ))}
+          </div>
 
-            {/* Results Section */}
-            <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
-              {error ? (
-                <Typography color="error" sx={{ p: 2 }}>{error}</Typography>
-              ) : isLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                  <CircularProgress sx={{ color: 'white' }} />
-                </Box>
-              ) : (
-                <>
-                  <Typography 
-                    sx={{ 
-                      mb: 3,
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      fontSize: '0.95rem'
-                    }}
-                  >
-                    Showing {filteredData.length} results
-                  </Typography>
-                  <Box sx={{ overflowX: 'auto' }}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ color: 'white', fontWeight: 500, borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>Name</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 500, borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>Phone</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 500, borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>Hours</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 500, borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>Rating</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 500, borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>Address</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 500, borderBottom: '2px solid rgba(255, 255, 255, 0.1)' }}>Location</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {filteredData.map((item, index) => (
-                          <TableRow 
-                            key={index} 
-                            sx={{ 
-                              '&:hover': { 
-                                backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                                transition: 'background-color 0.2s ease'
-                              },
-                              '& td': { 
-                                borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-                              }
-                            }}
-                          >
-                            <TableCell sx={{ color: 'white' }}>{item.Name}</TableCell>
-                            <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>{item.Phone}</TableCell>
-                            <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>{item.Hours}</TableCell>
-                            <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>{item.Rating}</TableCell>
-                            <TableCell sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>{item.Address}</TableCell>
-                            <TableCell>
-                              {item.URL ? (
-                                <Button
-                                  variant="contained"
-                                  href={item.URL}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  size="small"
-                                  startIcon={<PlaceIcon />}
-                                  sx={{
-                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                    color: '#90caf9',
-                                    textTransform: 'none',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(144, 202, 249, 0.2)',
-                                    }
-                                  }}
-                                >
-                                  Maps
-                                </Button>
-                              ) : 'N/A'}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </Box>
-                </>
-              )}
-            </Box>
-          </Paper>
-        </Container>
-      </Box>
-    </>
+          <p className="text-gray-400 mb-4">
+            Showing {filteredData.length} results
+          </p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-gray-400">
+                  <th className="pb-3">Name</th>
+                  <th className="pb-3">Phone</th>
+                  <th className="pb-3">Hours</th>
+                  <th className="pb-3">Rating</th>
+                  <th className="pb-3">Address</th>
+                  <th className="pb-3">Location</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredData.map((item, index) => (
+                  <tr key={index} className="border-t border-gray-700">
+                    <td className="py-3">{item.Name}</td>
+                    <td className="py-3">{item.Phone}</td>
+                    <td className="py-3">{item.Hours}</td>
+                    <td className="py-3">{item.Rating?.toFixed(1) || 'N/A'}</td>
+                    <td className="py-3">{item.Address}</td>
+                    <td className="py-3">
+                      {item.URL && (
+                        <a
+                          href={item.URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300"
+                        >
+                          View Map
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default App;
+export default MapsDirectory;
